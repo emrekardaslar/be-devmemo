@@ -17,6 +17,15 @@ export class Standup {
   @Column('simple-array')
   tags: string[];
 
+  @Column('int', { default: 0 })
+  mood: number;
+
+  @Column('int', { default: 0 })
+  productivity: number;
+
+  @Column('boolean', { default: false })
+  isHighlight: boolean;
+
   @CreateDateColumn()
   createdAt: Date;
 
