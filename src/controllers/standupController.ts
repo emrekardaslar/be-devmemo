@@ -9,7 +9,7 @@ const standupRepository = AppDataSource.getRepository(Standup);
 // Controller methods
 export const createStandup = async (req: Request, res: Response) => {
   try {
-    const { date, yesterday, today, blockers, tags, mood, productivity, isHighlight } = req.body;
+    const { date, yesterday, today, blockers, isBlockerResolved, tags, mood, productivity, isHighlight } = req.body;
 
     // Create new standup instance
     const standup = standupRepository.create({
@@ -17,6 +17,7 @@ export const createStandup = async (req: Request, res: Response) => {
       yesterday,
       today,
       blockers,
+      isBlockerResolved: isBlockerResolved || false,
       tags: tags || [],
       mood: mood || 0,
       productivity: productivity || 0,
@@ -73,7 +74,7 @@ export const getStandup = async (req: Request, res: Response) => {
 export const updateStandup = async (req: Request, res: Response) => {
   try {
     const { date } = req.params;
-    const { yesterday, today, blockers, tags, mood, productivity, isHighlight } = req.body;
+    const { yesterday, today, blockers, isBlockerResolved, tags, mood, productivity, isHighlight } = req.body;
 
     // Check if standup exists
     const standup = await standupRepository.findOne({
@@ -91,6 +92,7 @@ export const updateStandup = async (req: Request, res: Response) => {
     standup.yesterday = yesterday !== undefined ? yesterday : standup.yesterday;
     standup.today = today !== undefined ? today : standup.today;
     standup.blockers = blockers !== undefined ? blockers : standup.blockers;
+    standup.isBlockerResolved = isBlockerResolved !== undefined ? isBlockerResolved : standup.isBlockerResolved;
     standup.tags = tags !== undefined ? tags : standup.tags;
     
     // Update mood if provided
@@ -156,7 +158,7 @@ export const deleteStandup = async (req: Request, res: Response) => {
 export const getAllStandups = async (req: Request, res: Response) => {
   try {
     // Handle query params for filtering
-    const { tag, minMood, maxMood, minProductivity, maxProductivity, isHighlight } = req.query;
+    const { tag, minMood, maxMood, minProductivity, maxProductivity, isHighlight, hasBlockers } = req.query;
     
     let query = standupRepository.createQueryBuilder('standup');
     
@@ -187,6 +189,11 @@ export const getAllStandups = async (req: Request, res: Response) => {
     if (isHighlight !== undefined) {
       const highlightValue = isHighlight === 'true';
       query = query.andWhere('standup.isHighlight = :isHighlight', { isHighlight: highlightValue });
+    }
+    
+    // Filter standups with blockers if requested
+    if (hasBlockers === 'true') {
+      query = query.andWhere('standup.blockers IS NOT NULL AND standup.blockers != :emptyString', { emptyString: '' });
     }
     
     // Order by date descending (most recent first)

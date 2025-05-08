@@ -14,6 +14,9 @@ export class Standup {
   @Column('text')
   blockers: string;
 
+  @Column('boolean', { default: false })
+  isBlockerResolved: boolean;
+
   @Column('simple-array')
   tags: string[];
 

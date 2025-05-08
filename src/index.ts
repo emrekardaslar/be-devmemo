@@ -2,11 +2,12 @@ import 'reflect-metadata';
 import express from 'express';
 import cors from 'cors';
 import bodyParser from 'body-parser';
-import { initializeDatabase, seedDatabase } from './config/database';
+import { initializeDatabase, seedDatabase, AppDataSource } from './config/database';
 import standupRoutes from './routes/standupRoutes';
 import queryRoutes from './routes/queryRoutes';
 import { errorHandler } from './middleware/errorMiddleware';
 import dotenv from 'dotenv';
+import { Standup } from './entity/Standup';
 
 // Load environment variables
 dotenv.config();
@@ -31,6 +32,42 @@ app.get('/', (req, res) => {
 // Error handling middleware
 app.use(errorHandler);
 
+// Function to run migrations manually
+const runMigrations = async () => {
+  try {
+    if (!AppDataSource.isInitialized) {
+      console.log('Database not initialized. Skipping migrations.');
+      return false;
+    }
+    
+    console.log('Checking if isBlockerResolved column exists...');
+    
+    // Run a query to check if the column exists
+    const tableInfo = await AppDataSource.query(
+      `SELECT column_name FROM information_schema.columns 
+       WHERE table_name = 'standup' AND column_name = 'isBlockerResolved'`
+    );
+    
+    if (tableInfo.length === 0) {
+      console.log('Adding isBlockerResolved column to standup table');
+      
+      // Add the column if it doesn't exist
+      await AppDataSource.query(
+        `ALTER TABLE "standup" ADD COLUMN "isBlockerResolved" boolean NOT NULL DEFAULT false`
+      );
+      
+      console.log('Migration completed successfully');
+    } else {
+      console.log('Column isBlockerResolved already exists');
+    }
+    
+    return true;
+  } catch (error) {
+    console.error('Error running migrations:', error);
+    return false;
+  }
+};
+
 // Start the application
 const startApp = async () => {
   try {
@@ -41,6 +78,9 @@ const startApp = async () => {
       console.error('Failed to initialize database. Exiting application.');
       process.exit(1);
     }
+    
+    // Run migrations
+    await runMigrations();
     
     // Seed the database with sample data (if empty)
     await seedDatabase();
