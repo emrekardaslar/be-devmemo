@@ -60,20 +60,62 @@ export const getWeeklySummary = async (req: Request, res: Response) => {
     });
     
     if (standups.length === 0) {
-      return res.status(404).json({
-        success: false,
-        message: 'No standups found for the specified date range'
+      return res.status(200).json({
+        success: true,
+        data: {
+          period: {
+            startDate,
+            endDate
+          },
+          standups: {
+            total: 0,
+            dates: []
+          },
+          achievements: [],
+          plans: [],
+          blockers: [],
+          mood: {
+            average: 0,
+            data: []
+          },
+          productivity: {
+            average: 0,
+            data: []
+          },
+          tags: [],
+          highlights: []
+        }
       });
     }
     
     // Process the standups to generate a summary
     const summary = {
-      period: `${startDate} to ${endDate}`,
-      accomplishments: standups.map(s => ({ date: s.date, done: s.yesterday })),
-      plans: standups.map(s => ({ date: s.date, plan: s.today })),
+      period: {
+        startDate,
+        endDate
+      },
+      standups: {
+        total: standups.length,
+        dates: standups.map(s => s.date)
+      },
+      achievements: standups.flatMap(s => s.yesterday ? s.yesterday.split('\n').filter(a => a.trim() !== '') : []),
+      plans: standups.flatMap(s => s.today ? s.today.split('\n').filter(p => p.trim() !== '') : []),
       blockers: standups.filter(s => s.blockers && s.blockers.trim() !== '')
-        .map(s => ({ date: s.date, blocker: s.blockers })),
-      tags: Array.from(new Set(standups.flatMap(s => s.tags)))
+        .map(s => s.blockers),
+      mood: {
+        average: calculateAverage(standups.map(s => s.mood)),
+        data: standups.map(s => s.mood)
+      },
+      productivity: {
+        average: calculateAverage(standups.map(s => s.productivity)),
+        data: standups.map(s => s.productivity)
+      },
+      tags: Array.from(new Set(standups.flatMap(s => s.tags || [])))
+        .map(tag => ({
+          tag,
+          count: standups.filter(s => s.tags && s.tags.includes(tag)).length
+        })),
+      highlights: standups.filter(s => s.isHighlight).map(s => `${s.date}: ${s.today}`)
     };
     
     return res.status(200).json({
@@ -88,6 +130,14 @@ export const getWeeklySummary = async (req: Request, res: Response) => {
       error: (error as Error).message
     });
   }
+};
+
+// Helper function to calculate average, safely handling non-numeric values
+const calculateAverage = (numbers: number[]): number => {
+  if (!numbers || numbers.length === 0) return 0;
+  const validNumbers = numbers.filter(n => typeof n === 'number' && !isNaN(n));
+  if (validNumbers.length === 0) return 0;
+  return validNumbers.reduce((a, b) => a + b, 0) / validNumbers.length;
 };
 
 // Get monthly summary

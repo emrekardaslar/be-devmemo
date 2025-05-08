@@ -1,5 +1,6 @@
 import { Request, Response } from 'express';
 import { getTestStandupData } from '../utils/testHelpers';
+// Declaring jest globals instead of importing '@types/jest'
 
 // Mock the database module
 jest.mock('../../src/config/database', () => {
@@ -101,6 +102,41 @@ describe('QueryController', () => {
       
       // Assert
       expect(mockResponse.status).toHaveBeenCalledWith(200);
+      expect(mockResponse.json).toHaveBeenCalledWith(expect.objectContaining({
+        success: true,
+        data: expect.objectContaining({
+          period: expect.any(Object),
+          standups: expect.objectContaining({
+            total: expect.any(Number),
+            dates: expect.any(Array)
+          })
+        })
+      }));
+    });
+
+    it('should return an empty data structure when no standups found', async () => {
+      // Arrange
+      const queryController = require('../../src/controllers/queryController');
+      mockRequest.params = { year: '2023', week: '1' };
+      
+      // Mock empty results
+      mockRepository.find.mockResolvedValueOnce([]);
+      
+      // Act
+      await queryController.getWeeklySummary(mockRequest as Request, mockResponse as Response);
+      
+      // Assert
+      expect(mockResponse.status).toHaveBeenCalledWith(200);
+      expect(mockResponse.json).toHaveBeenCalledWith(expect.objectContaining({
+        success: true,
+        data: expect.objectContaining({
+          period: expect.any(Object),
+          standups: expect.objectContaining({
+            total: 0,
+            dates: []
+          })
+        })
+      }));
     });
 
     it('should handle errors during weekly summary retrieval', async () => {
