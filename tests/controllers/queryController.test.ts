@@ -203,6 +203,29 @@ describe('QueryController', () => {
       
       // Assert
       expect(mockResponse.status).toHaveBeenCalledWith(200);
+      expect(mockResponse.json).toHaveBeenCalledWith(expect.objectContaining({
+        success: true,
+        data: expect.any(Array)
+      }));
+    });
+
+    it('should return an empty array when no blockers found', async () => {
+      // Arrange
+      const queryController = require('../../src/controllers/queryController');
+      mockRequest.query = { limit: '5' };
+      
+      // Mock empty results
+      mockRepository.find.mockResolvedValueOnce([]);
+      
+      // Act
+      await queryController.getBlockers(mockRequest as Request, mockResponse as Response);
+      
+      // Assert
+      expect(mockResponse.status).toHaveBeenCalledWith(200);
+      expect(mockResponse.json).toHaveBeenCalledWith(expect.objectContaining({
+        success: true,
+        data: []
+      }));
     });
 
     it('should handle errors when retrieving blockers', async () => {

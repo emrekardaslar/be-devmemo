@@ -240,9 +240,9 @@ export const getBlockers = async (req: Request, res: Response) => {
     });
     
     if (standups.length === 0) {
-      return res.status(404).json({
-        success: false,
-        message: 'No blockers found'
+      return res.status(200).json({
+        success: true,
+        data: []
       });
     }
     
