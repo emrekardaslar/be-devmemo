@@ -88,10 +88,10 @@ export const updateStandup = async (req: Request, res: Response) => {
     }
 
     // Update fields
-    standup.yesterday = yesterday || standup.yesterday;
-    standup.today = today || standup.today;
-    standup.blockers = blockers || standup.blockers;
-    standup.tags = tags || standup.tags;
+    standup.yesterday = yesterday !== undefined ? yesterday : standup.yesterday;
+    standup.today = today !== undefined ? today : standup.today;
+    standup.blockers = blockers !== undefined ? blockers : standup.blockers;
+    standup.tags = tags !== undefined ? tags : standup.tags;
     
     // Update mood if provided
     if (mood !== undefined) {
