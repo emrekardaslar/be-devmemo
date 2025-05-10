@@ -27,7 +27,7 @@
   "devDependencies": {
     "@types/better-sqlite3": "^7.6.13",
     "@types/body-parser": "^1.19.5",
-    "@types/cors": "^2.8.17",
+    "@types/cors": "^2.8.18",
     "@types/jest": "^29.5.14",
     "@types/node": "^22.15.15",
     "@types/supertest": "^6.0.3",
