@@ -188,7 +188,7 @@ export const getAllStandups = async (req: Request, res: Response) => {
     // Filter by highlight status if provided
     if (isHighlight !== undefined) {
       const highlightValue = isHighlight === 'true';
-      query = query.andWhere('standup.isHighlight = :isHighlight', { isHighlight: highlightValue });
+      query = query.andWhere('standup."isHighlight" = :isHighlight', { isHighlight: highlightValue });
     }
     
     // Filter standups with blockers if requested
@@ -430,15 +430,12 @@ export const getStandupsByDateRange = async (req: Request, res: Response) => {
 // Get highlight standups
 export const getHighlights = async (req: Request, res: Response) => {
   try {
-    // Get all standups marked as highlights
-    const highlights = await standupRepository.find({
-      where: {
-        isHighlight: true
-      },
-      order: {
-        date: 'DESC'
-      }
-    });
+    // Get all standups marked as highlights using raw query
+    const highlights = await standupRepository
+      .createQueryBuilder('standup')
+      .where('standup."isHighlight" = :highlight', { highlight: true })
+      .orderBy('standup.date', 'DESC')
+      .getMany();
     
     if (highlights.length === 0) {
       return res.status(404).json({
@@ -467,10 +464,11 @@ export const toggleHighlight = async (req: Request, res: Response) => {
   try {
     const { date } = req.params;
 
-    // Check if standup exists
-    const standup = await standupRepository.findOne({
-      where: { date }
-    });
+    // Check if standup exists using raw query builder
+    const standup = await standupRepository
+      .createQueryBuilder('standup')
+      .where('standup.date = :date', { date })
+      .getOne();
 
     if (!standup) {
       return res.status(404).json({

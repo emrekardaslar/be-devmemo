@@ -11,8 +11,10 @@ const databaseUrl = process.env.DATABASE_URL;
 
 let dataSource: DataSource;
 
-// Production configuration with Supabase connection string
 if (isProduction && databaseUrl) {
+  // Production configuration with Supabase connection string
+  console.log('Using Supabase PostgreSQL in production');
+  
   // Parse the connection string to extract components
   const connectionRegex = /^postgresql:\/\/([^:]+):([^@]+)@([^:]+):(\d+)\/(.+)$/;
   const match = databaseUrl.match(connectionRegex);
@@ -41,15 +43,20 @@ if (isProduction && databaseUrl) {
     }
   });
 } else {
-  // Development configuration using SQLite
+  // Development configuration using local PostgreSQL
+  console.log('Using local PostgreSQL in development');
   dataSource = new DataSource({
-    type: "sqlite",
-    database: "standups.sqlite",
+    type: "postgres",
+    host: "localhost",
+    port: 5432,
+    username: "postgres",
+    password: "postgres",
+    database: "standupsync",
     synchronize: true,
-    logging: false,
+    logging: true,
     entities: [Standup],
     migrations: [],
-    subscribers: [],
+    subscribers: []
   });
 }
 
