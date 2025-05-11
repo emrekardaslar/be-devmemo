@@ -17,7 +17,7 @@ export class Standup {
   @Column('boolean', { default: false })
   isBlockerResolved: boolean;
 
-  @Column('simple-array')
+  @Column('text', { array: true, default: '{}' })
   tags: string[];
 
   @Column('int', { default: 0 })

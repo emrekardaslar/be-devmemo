@@ -11,6 +11,22 @@ export const createStandup = async (req: Request, res: Response) => {
   try {
     const { date, yesterday, today, blockers, isBlockerResolved, tags, mood, productivity, isHighlight } = req.body;
 
+    // Ensure tags is properly formatted for PostgreSQL
+    let formattedTags = [];
+    if (tags) {
+      // If tags is already in PostgreSQL format (e.g., {tag1,tag2}), use it directly
+      // Otherwise, format it to match PostgreSQL's array literal syntax
+      if (Array.isArray(tags)) {
+        if (tags.length === 0) {
+          formattedTags = [];
+        } else {
+          formattedTags = tags.map(tag => tag.toString());
+        }
+      } else {
+        formattedTags = [];
+      }
+    }
+
     // Create new standup instance
     const standup = standupRepository.create({
       date,
@@ -18,7 +34,7 @@ export const createStandup = async (req: Request, res: Response) => {
       today,
       blockers,
       isBlockerResolved: isBlockerResolved || false,
-      tags: tags || [],
+      tags: formattedTags,
       mood: mood || 0,
       productivity: productivity || 0,
       isHighlight: isHighlight || false
@@ -93,7 +109,19 @@ export const updateStandup = async (req: Request, res: Response) => {
     standup.today = today !== undefined ? today : standup.today;
     standup.blockers = blockers !== undefined ? blockers : standup.blockers;
     standup.isBlockerResolved = isBlockerResolved !== undefined ? isBlockerResolved : standup.isBlockerResolved;
-    standup.tags = tags !== undefined ? tags : standup.tags;
+    
+    // Format tags properly if they're provided
+    if (tags !== undefined) {
+      let formattedTags = [];
+      if (Array.isArray(tags)) {
+        if (tags.length === 0) {
+          formattedTags = [];
+        } else {
+          formattedTags = tags.map(tag => tag.toString());
+        }
+      }
+      standup.tags = formattedTags;
+    }
     
     // Update mood if provided
     if (mood !== undefined) {
@@ -233,8 +261,16 @@ export const updateTags = async (req: Request, res: Response) => {
       });
     }
 
-    // Update tags
-    standup.tags = tags;
+    // Format and update tags
+    let formattedTags = [];
+    if (Array.isArray(tags)) {
+      if (tags.length === 0) {
+        formattedTags = [];
+      } else {
+        formattedTags = tags.map(tag => tag.toString());
+      }
+    }
+    standup.tags = formattedTags;
 
     // Save updates
     await standupRepository.save(standup);
