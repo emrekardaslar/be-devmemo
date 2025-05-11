@@ -2,6 +2,15 @@
 
 This is the backend service for the StandupSync application, providing API endpoints for daily standup management.
 
+## Demo API
+
+The production API is deployed at [https://be-devmemo.onrender.com/api](https://be-devmemo.onrender.com/api)
+
+Example API endpoints:
+- [All Standups](https://be-devmemo.onrender.com/api/standups)
+- [Highlight Standups](https://be-devmemo.onrender.com/api/standups/highlights)
+- [Standup Statistics](https://be-devmemo.onrender.com/api/standups/stats)
+
 ## Technology Stack
 
 - Node.js with Express
