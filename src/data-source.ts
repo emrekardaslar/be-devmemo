@@ -38,7 +38,8 @@ if (isProduction && databaseUrl) {
     synchronize: false,
     logging: false,
     entities: [User, Standup], // Direct entity references
-    migrations: [],
+    migrations: [join(__dirname, 'migrations', '*.{ts,js}')],
+    migrationsTableName: "migrations_history",
     subscribers: [],
     ssl: {
       rejectUnauthorized: false // Required for Supabase connections
@@ -57,7 +58,8 @@ if (isProduction && databaseUrl) {
     synchronize: true,
     logging: true,
     entities: [User, Standup], // Direct entity references
-    migrations: [],
+    migrations: [join(__dirname, 'migrations', '*.{ts,js}')],
+    migrationsTableName: "migrations_history",
     subscribers: []
   });
 }

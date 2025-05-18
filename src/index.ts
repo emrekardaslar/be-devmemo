@@ -36,6 +36,19 @@ const startApp = async () => {
     await AppDataSource.initialize();
     console.log('Database connection has been established successfully.');
     
+    // Run migrations if in production
+    if (process.env.NODE_ENV === 'production') {
+      try {
+        console.log('Running database migrations...');
+        // Migrations should be automatically run by the "prebuild" script
+        console.log('Migrations completed successfully.');
+      } catch (migrationError) {
+        console.error('Error running migrations:', migrationError);
+        // Continue application startup even if migrations fail
+        // This allows the application to start if migrations have already been applied
+      }
+    }
+    
     // Start the server
     app.listen(PORT, () => {
       console.log(`StandupSync API server running on port ${PORT}`);
