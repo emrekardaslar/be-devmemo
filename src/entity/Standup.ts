@@ -3,43 +3,43 @@ import { User } from './User';
 
 @Entity('standup')
 export class Standup {
-  @PrimaryColumn()
+  @PrimaryColumn({ name: 'date' })
   date: string;
 
-  @Column('text')
+  @Column({ name: 'yesterday', type: 'text' })
   yesterday: string;
 
-  @Column('text')
+  @Column({ name: 'today', type: 'text' })
   today: string;
 
-  @Column('text')
+  @Column({ name: 'blockers', type: 'text' })
   blockers: string;
 
-  @Column('boolean', { default: false })
+  @Column({ name: 'isBlockerResolved', type: 'boolean', default: false })
   isBlockerResolved: boolean;
 
-  @Column('text', { array: true, default: '{}' })
+  @Column({ name: 'tags', type: 'text', array: true, default: '{}' })
   tags: string[];
 
-  @Column('int', { default: 0 })
+  @Column({ name: 'mood', type: 'int', default: 0 })
   mood: number;
 
-  @Column('int', { default: 0 })
+  @Column({ name: 'productivity', type: 'int', default: 0 })
   productivity: number;
 
-  @Column('boolean', { default: false })
+  @Column({ name: 'isHighlight', type: 'boolean', default: false })
   isHighlight: boolean;
 
   @ManyToOne(() => User, (user) => user.standups, { nullable: true })
   @JoinColumn({ name: 'userId' })
   user: User;
 
-  @Column({ nullable: true })
+  @Column({ name: 'userId', nullable: true })
   userId: string;
 
-  @CreateDateColumn()
+  @CreateDateColumn({ name: 'createdAt' })
   createdAt: Date;
 
-  @UpdateDateColumn()
+  @UpdateDateColumn({ name: 'updatedAt' })
   updatedAt: Date;
 }
