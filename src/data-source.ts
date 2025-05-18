@@ -1,5 +1,5 @@
 import "reflect-metadata";
-import { DataSource } from "typeorm";
+import { DataSource, DefaultNamingStrategy } from "typeorm";
 import dotenv from 'dotenv';
 import { join } from 'path';
 import { User } from "./entity/User";
@@ -7,6 +7,13 @@ import { Standup } from "./entity/Standup";
 
 // Load environment variables
 dotenv.config();
+
+// Custom naming strategy for lowercase table names
+class LowercaseNamingStrategy extends DefaultNamingStrategy {
+  tableName(targetName: string, userSpecifiedName: string | undefined): string {
+    return userSpecifiedName ? userSpecifiedName.toLowerCase() : targetName.toLowerCase();
+  }
+}
 
 const isProduction = process.env.NODE_ENV === 'production';
 const databaseUrl = process.env.DATABASE_URL;
@@ -40,6 +47,7 @@ if (isProduction && databaseUrl) {
     entities: [User, Standup], // Direct entity references
     migrations: [join(__dirname, 'migrations', '*.{ts,js}')],
     migrationsTableName: "migrations_history",
+    namingStrategy: new LowercaseNamingStrategy(),
     subscribers: [],
     ssl: {
       rejectUnauthorized: false // Required for Supabase connections
@@ -60,6 +68,7 @@ if (isProduction && databaseUrl) {
     entities: [User, Standup], // Direct entity references
     migrations: [join(__dirname, 'migrations', '*.{ts,js}')],
     migrationsTableName: "migrations_history",
+    namingStrategy: new LowercaseNamingStrategy(),
     subscribers: []
   });
 }

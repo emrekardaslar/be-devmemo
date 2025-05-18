@@ -39,9 +39,17 @@ const startApp = async () => {
     // Run migrations if in production
     if (process.env.NODE_ENV === 'production') {
       try {
-        console.log('Running database migrations...');
-        // Migrations should be automatically run by the "prebuild" script
-        console.log('Migrations completed successfully.');
+        console.log('Running database migrations explicitly...');
+        
+        // Run migrations explicitly
+        const pendingMigrations = await AppDataSource.showMigrations();
+        if (pendingMigrations) {
+          console.log('Pending migrations detected, running migrations now...');
+          await AppDataSource.runMigrations();
+          console.log('Migrations completed successfully.');
+        } else {
+          console.log('No pending migrations found.');
+        }
       } catch (migrationError) {
         console.error('Error running migrations:', migrationError);
         // Continue application startup even if migrations fail

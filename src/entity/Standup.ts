@@ -1,7 +1,7 @@
 import { Entity, PrimaryColumn, Column, CreateDateColumn, UpdateDateColumn, ManyToOne, JoinColumn } from 'typeorm';
 import { User } from './User';
 
-@Entity()
+@Entity('standup')
 export class Standup {
   @PrimaryColumn()
   date: string;
