@@ -183,9 +183,15 @@ export const getMonthlySummary = async (req: Request, res: Response) => {
     });
     
     if (standups.length === 0) {
-      return res.status(404).json({
-        success: false,
-        message: `No standups found for ${month}`
+      // Return 200 status with empty data instead of 404 error
+      return res.status(200).json({
+        success: true,
+        data: {
+          month,
+          totalEntries: 0,
+          weeklySummaries: [],
+          topTags: []
+        }
       });
     }
     
