@@ -1,5 +1,5 @@
 import { Request, Response } from 'express';
-import { AppDataSource } from '../config/database';
+import { AppDataSource } from '../data-source';
 import { Standup } from '../entity/Standup';
 import { Between, Like } from 'typeorm';
 

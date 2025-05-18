@@ -1,5 +1,5 @@
 import { DataSource } from 'typeorm';
-import { Standup } from '../entity/Standup';
+import { join } from 'path';
 import 'dotenv/config';
 
 const isProduction = process.env.NODE_ENV === 'production';
@@ -31,7 +31,7 @@ if (isProduction && databaseUrl) {
     database: database,
     synchronize: false, // Disable auto-synchronization in production
     logging: false,
-    entities: [Standup],
+    entities: [join(__dirname, '../entity/*.{js,ts}')], // Use glob pattern for entity loading
     migrations: [],
     subscribers: [],
     ssl: {
@@ -48,7 +48,7 @@ if (isProduction && databaseUrl) {
     username: process.env.DB_USERNAME || 'postgres',
     password: process.env.DB_PASSWORD || 'postgres',
     database: process.env.DB_DATABASE || 'standups',
-    entities: [Standup],
+    entities: [join(__dirname, '../entity/*.{js,ts}')], // Use glob pattern for entity loading
     synchronize: true, // For development only
     logging: true // Set to true for debugging
   };
@@ -142,7 +142,7 @@ export const seedDatabase = async () => {
       return false;
     }
     
-    const standupRepository = AppDataSource.getRepository(Standup);
+    const standupRepository = AppDataSource.getRepository('Standup');
     
     // Check if we already have data
     const count = await standupRepository.count();

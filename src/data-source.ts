@@ -1,7 +1,9 @@
 import "reflect-metadata";
 import { DataSource } from "typeorm";
-import { Standup } from "./entity/Standup";
 import dotenv from 'dotenv';
+import { join } from 'path';
+import { User } from "./entity/User";
+import { Standup } from "./entity/Standup";
 
 // Load environment variables
 dotenv.config();
@@ -35,7 +37,7 @@ if (isProduction && databaseUrl) {
     database: database,
     synchronize: true,
     logging: false,
-    entities: [Standup],
+    entities: [User, Standup], // Direct entity references
     migrations: [],
     subscribers: [],
     ssl: {
@@ -51,10 +53,10 @@ if (isProduction && databaseUrl) {
     port: 5432,
     username: "postgres",
     password: "postgres",
-    database: "standupsync",
+    database: "standups",
     synchronize: true,
     logging: true,
-    entities: [Standup],
+    entities: [User, Standup], // Direct entity references
     migrations: [],
     subscribers: []
   });
