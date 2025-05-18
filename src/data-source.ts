@@ -35,7 +35,7 @@ if (isProduction && databaseUrl) {
     username: username,
     password: password,
     database: database,
-    synchronize: true,
+    synchronize: false,
     logging: false,
     entities: [User, Standup], // Direct entity references
     migrations: [],
