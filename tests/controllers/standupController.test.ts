@@ -1,8 +1,8 @@
 import { Request, Response } from 'express';
 import { getTestStandupData } from '../utils/testHelpers';
 
-// Mock the database module
-jest.mock('../../src/config/database', () => {
+// Mock the data-source module
+jest.mock('../../src/data-source', () => {
   return {
     AppDataSource: {
       getRepository: jest.fn(() => mockRepository)

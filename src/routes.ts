@@ -2,6 +2,11 @@ import express from 'express';
 import * as standupController from './controllers/standupController';
 import * as queryController from './controllers/queryController';
 import { AppDataSource } from './data-source';
+import { AuthController } from './controllers/AuthController';
+import { authenticateJWT, optionalAuth } from './middleware/authMiddleware';
+
+// Create instance of AuthController
+const authController = new AuthController();
 
 export function setupRoutes(app: express.Application) {
   // Health check endpoint
@@ -45,23 +50,35 @@ export function setupRoutes(app: express.Application) {
     }
   });
 
-  // Standup routes
-  app.get('/api/standups', standupController.getAllStandups);
-  app.get('/api/standups/:date', standupController.getStandup);
-  app.get('/api/standups/range', standupController.getStandupsByDateRange);
-  app.get('/api/standups/highlights', standupController.getHighlights);
-  app.post('/api/standups', standupController.createStandup);
-  app.put('/api/standups/:date', standupController.updateStandup);
-  app.delete('/api/standups/:date', standupController.deleteStandup);
-  app.patch('/api/standups/:date/highlight', standupController.toggleHighlight);
-  app.get('/api/standups/search', standupController.searchStandups);
-  app.get('/api/standups/stats', standupController.getStatistics);
+  // Authentication routes
+  app.post('/api/auth/register', authController.register.bind(authController));
+  app.post('/api/auth/login', authController.login.bind(authController));
+  app.post('/api/auth/refresh-token', authController.refreshToken.bind(authController));
+  app.post('/api/auth/logout', authController.logout.bind(authController));
+  app.get('/api/auth/verify-email/:token', authController.verifyEmail.bind(authController));
+  app.post('/api/auth/request-password-reset', authController.requestPasswordReset.bind(authController));
+  app.post('/api/auth/reset-password', authController.resetPassword.bind(authController));
+  app.get('/api/auth/profile', authenticateJWT, authController.getProfile.bind(authController));
 
-  // Query routes
-  app.get('/api/query/week', queryController.getWeeklySummary);
-  app.get('/api/query/month/:month', queryController.getMonthlySummary);
-  app.get('/api/query/blockers', queryController.getBlockers);
-  app.post('/api/query', queryController.processQuery);
+  // Standup routes - protected with authentication
+  app.get('/api/standups', optionalAuth, standupController.getAllStandups);
+  // Specific standup routes first - these must come before parameterized routes
+  app.get('/api/standups/stats', optionalAuth, standupController.getStatistics);
+  app.get('/api/standups/range', optionalAuth, standupController.getStandupsByDateRange);
+  app.get('/api/standups/highlights', optionalAuth, standupController.getHighlights);
+  app.get('/api/standups/search', optionalAuth, standupController.searchStandups);
+  // Parameterized routes last
+  app.get('/api/standups/:date', optionalAuth, standupController.getStandup);
+  app.post('/api/standups', authenticateJWT, standupController.createStandup);
+  app.put('/api/standups/:date', authenticateJWT, standupController.updateStandup);
+  app.delete('/api/standups/:date', authenticateJWT, standupController.deleteStandup);
+  app.patch('/api/standups/:date/highlight', authenticateJWT, standupController.toggleHighlight);
+
+  // Query routes - protected with authentication 
+  app.get('/api/query/week', optionalAuth, queryController.getWeeklySummary);
+  app.get('/api/query/month/:month', optionalAuth, queryController.getMonthlySummary);
+  app.get('/api/query/blockers', optionalAuth, queryController.getBlockers);
+  app.post('/api/query', authenticateJWT, queryController.processQuery);
   
   // Root API route
   app.get('/api', (req, res) => {

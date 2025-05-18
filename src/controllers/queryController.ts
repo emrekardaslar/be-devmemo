@@ -1,5 +1,5 @@
 import { Request, Response } from 'express';
-import { AppDataSource } from '../config/database';
+import { AppDataSource } from '../data-source';
 import { Standup } from '../entity/Standup';
 import { Between, Like } from 'typeorm';
 
@@ -50,10 +50,19 @@ export const getWeeklySummary = async (req: Request, res: Response) => {
       endDate = weekRange.endDate;
     }
     
+    // Build where condition
+    let whereCondition: any = {
+      date: Between(startDate, endDate)
+    };
+    
+    // Filter by user if authenticated
+    if (req.user?.id) {
+      whereCondition.userId = req.user.id;
+      console.log(`Filtering weekly summary for user ID: ${req.user.id}`);
+    }
+    
     const standups = await standupRepository.find({
-      where: {
-        date: Between(startDate, endDate)
-      },
+      where: whereCondition,
       order: {
         date: 'ASC'
       }
@@ -155,19 +164,34 @@ export const getMonthlySummary = async (req: Request, res: Response) => {
     
     const { startDate, endDate } = getMonthDateRange(month);
     
+    // Build where condition
+    let whereCondition: any = {
+      date: Between(startDate, endDate)
+    };
+    
+    // Filter by user if authenticated
+    if (req.user?.id) {
+      whereCondition.userId = req.user.id;
+      console.log(`Filtering monthly summary for user ID: ${req.user.id}`);
+    }
+    
     const standups = await standupRepository.find({
-      where: {
-        date: Between(startDate, endDate)
-      },
+      where: whereCondition,
       order: {
         date: 'ASC'
       }
     });
     
     if (standups.length === 0) {
-      return res.status(404).json({
-        success: false,
-        message: `No standups found for ${month}`
+      // Return 200 status with empty data instead of 404 error
+      return res.status(200).json({
+        success: true,
+        data: {
+          month,
+          totalEntries: 0,
+          weeklySummaries: [],
+          topTags: []
+        }
       });
     }
     
@@ -229,11 +253,20 @@ export const getMonthlySummary = async (req: Request, res: Response) => {
 // Get recurring blockers
 export const getBlockers = async (req: Request, res: Response) => {
   try {
+    // Build where condition for non-empty blockers
+    let whereCondition: any = {
+      blockers: Like('%_%') // Matches any non-empty string
+    };
+    
+    // Filter by user if authenticated
+    if (req.user?.id) {
+      whereCondition.userId = req.user.id;
+      console.log(`Filtering blockers for user ID: ${req.user.id}`);
+    }
+    
     // Get all standups with non-empty blockers
     const standups = await standupRepository.find({
-      where: {
-        blockers: Like('%_%') // Matches any non-empty string
-      },
+      where: whereCondition,
       order: {
         date: 'DESC'
       }

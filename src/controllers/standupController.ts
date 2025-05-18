@@ -1,5 +1,5 @@
 import { Request, Response } from 'express';
-import { AppDataSource } from '../config/database';
+import { AppDataSource } from '../data-source';
 import { Standup } from '../entity/Standup';
 import { Between, Like, ILike } from 'typeorm';
 
@@ -10,6 +10,9 @@ const standupRepository = AppDataSource.getRepository(Standup);
 export const createStandup = async (req: Request, res: Response) => {
   try {
     const { date, yesterday, today, blockers, isBlockerResolved, tags, mood, productivity, isHighlight } = req.body;
+
+    // Get user ID from the authentication middleware
+    const userId = req.user?.id;
 
     // Ensure tags is properly formatted for PostgreSQL
     let formattedTags = [];
@@ -37,7 +40,8 @@ export const createStandup = async (req: Request, res: Response) => {
       tags: formattedTags,
       mood: mood || 0,
       productivity: productivity || 0,
-      isHighlight: isHighlight || false
+      isHighlight: isHighlight || false,
+      userId // Assign the user ID from authentication
     });
 
     // Save to database
@@ -61,9 +65,17 @@ export const createStandup = async (req: Request, res: Response) => {
 export const getStandup = async (req: Request, res: Response) => {
   try {
     const { date } = req.params;
+    
+    // Build where condition
+    let whereCondition: any = { date };
+    
+    // Filter by user if authenticated
+    if (req.user?.id) {
+      whereCondition.userId = req.user.id;
+    }
 
     const standup = await standupRepository.findOne({
-      where: { date }
+      where: whereCondition
     });
 
     if (!standup) {
@@ -92,9 +104,17 @@ export const updateStandup = async (req: Request, res: Response) => {
     const { date } = req.params;
     const { yesterday, today, blockers, isBlockerResolved, tags, mood, productivity, isHighlight } = req.body;
 
+    // Build where condition
+    let whereCondition: any = { date };
+    
+    // Filter by user if authenticated
+    if (req.user?.id) {
+      whereCondition.userId = req.user.id;
+    }
+
     // Check if standup exists
     const standup = await standupRepository.findOne({
-      where: { date }
+      where: whereCondition
     });
 
     if (!standup) {
@@ -138,6 +158,11 @@ export const updateStandup = async (req: Request, res: Response) => {
       standup.isHighlight = isHighlight;
     }
 
+    // Make sure userId doesn't change
+    if (req.user?.id) {
+      standup.userId = req.user.id;
+    }
+
     // Save updates
     await standupRepository.save(standup);
 
@@ -160,7 +185,15 @@ export const deleteStandup = async (req: Request, res: Response) => {
   try {
     const { date } = req.params;
 
-    const result = await standupRepository.delete({ date });
+    // Build where condition
+    let whereCondition: any = { date };
+    
+    // Filter by user if authenticated
+    if (req.user?.id) {
+      whereCondition.userId = req.user.id;
+    }
+
+    const result = await standupRepository.delete(whereCondition);
 
     if (result.affected === 0) {
       return res.status(404).json({
@@ -190,9 +223,15 @@ export const getAllStandups = async (req: Request, res: Response) => {
     
     let query = standupRepository.createQueryBuilder('standup');
     
+    // Filter by user ID if authenticated
+    if (req.user?.id) {
+      query = query.where('standup.userId = :userId', { userId: req.user.id });
+    }
+    
     // Filter by tag if provided
     if (tag) {
-      query = query.where('standup.tags LIKE :tag', { tag: `%${tag}%` });
+      const whereCondition = req.user?.id ? 'AND' : 'WHERE';
+      query = query.andWhere(`standup.tags LIKE :tag`, { tag: `%${tag}%` });
     }
     
     // Filter by mood range if provided
@@ -341,11 +380,57 @@ export const searchStandups = async (req: Request, res: Response) => {
 // Get statistics about standups
 export const getStatistics = async (req: Request, res: Response) => {
   try {
-    // Get total count
-    const totalCount = await standupRepository.count();
+    // Filter by user if authenticated
+    const userId = req.user?.id;
+    let whereCondition = {};
     
-    // Get unique tags
-    const standups = await standupRepository.find();
+    if (userId) {
+      whereCondition = { userId };
+      console.log(`Filtering statistics for user ID: ${userId}`);
+    } else {
+      console.log('No user ID found, returning all statistics');
+    }
+    
+    // Get total count for this user
+    const totalCount = await standupRepository.count({ where: whereCondition });
+    
+    // Get unique tags for this user
+    const standups = await standupRepository.find({ where: whereCondition });
+    
+    if (standups.length === 0) {
+      return res.status(200).json({
+        success: true,
+        data: {
+          totalStandups: 0,
+          dateRange: {
+            firstDate: null,
+            lastDate: null,
+            totalDays: 0
+          },
+          tagsStats: {
+            uniqueTagsCount: 0,
+            topTags: []
+          },
+          blockersStats: {
+            total: 0,
+            percentage: 0
+          },
+          moodStats: {
+            average: 0,
+            entriesWithMood: 0
+          },
+          productivityStats: {
+            average: 0,
+            entriesWithProductivity: 0
+          },
+          highlights: {
+            count: 0,
+            dates: []
+          }
+        }
+      });
+    }
+    
     const allTags = standups.flatMap(s => s.tags);
     const uniqueTags = [...new Set(allTags)];
     
@@ -439,10 +524,18 @@ export const getStandupsByDateRange = async (req: Request, res: Response) => {
       });
     }
     
+    // Build where condition
+    let whereCondition: any = {
+      date: Between(startDate as string, endDate as string)
+    };
+    
+    // Filter by user if authenticated
+    if (req.user?.id) {
+      whereCondition.userId = req.user.id;
+    }
+    
     const standups = await standupRepository.find({
-      where: {
-        date: Between(startDate as string, endDate as string)
-      },
+      where: whereCondition,
       order: {
         date: 'ASC'
       }
@@ -467,11 +560,19 @@ export const getStandupsByDateRange = async (req: Request, res: Response) => {
 export const getHighlights = async (req: Request, res: Response) => {
   try {
     // Get all standups marked as highlights using raw query
-    const highlights = await standupRepository
+    let highlightsQuery = standupRepository
       .createQueryBuilder('standup')
-      .where('standup."isHighlight" = :highlight', { highlight: true })
-      .orderBy('standup.date', 'DESC')
-      .getMany();
+      .where('standup."isHighlight" = :highlight', { highlight: true });
+    
+    // Filter by user if authenticated
+    if (req.user?.id) {
+      highlightsQuery = highlightsQuery.andWhere('standup.userId = :userId', { userId: req.user.id });
+    }
+    
+    // Order by date
+    highlightsQuery = highlightsQuery.orderBy('standup.date', 'DESC');
+    
+    const highlights = await highlightsQuery.getMany();
     
     if (highlights.length === 0) {
       return res.status(404).json({
@@ -501,10 +602,16 @@ export const toggleHighlight = async (req: Request, res: Response) => {
     const { date } = req.params;
 
     // Check if standup exists using raw query builder
-    const standup = await standupRepository
+    let standupQuery = standupRepository
       .createQueryBuilder('standup')
-      .where('standup.date = :date', { date })
-      .getOne();
+      .where('standup.date = :date', { date });
+    
+    // Filter by user if authenticated
+    if (req.user?.id) {
+      standupQuery = standupQuery.andWhere('standup.userId = :userId', { userId: req.user.id });
+    }
+    
+    const standup = await standupQuery.getOne();
 
     if (!standup) {
       return res.status(404).json({
