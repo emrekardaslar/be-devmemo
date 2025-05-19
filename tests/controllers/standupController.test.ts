@@ -1,3 +1,6 @@
+/**
+ * @jest-environment node
+ */
 import { Request, Response } from 'express';
 import { getTestStandupData } from '../utils/testHelpers';
 
@@ -41,8 +44,14 @@ describe('StandupController', () => {
     testStandups = getTestStandupData();
     mockQueryBuilder.getMany.mockResolvedValue(testStandups);
     
-    // Create mock request and response objects
-    mockRequest = {};
+    // Create mock request and response objects with authenticated user
+    mockRequest = {
+      user: { 
+        id: 'test-user-id',
+        email: 'test@example.com',
+        roles: ['user']
+      }
+    };
     mockResponse = {
       status: jest.fn().mockReturnThis(),
       json: jest.fn()
@@ -98,7 +107,9 @@ describe('StandupController', () => {
       await standupController.getStandup(mockRequest as Request, mockResponse as Response);
       
       // Assert
-      expect(mockRepository.findOne).toHaveBeenCalled();
+      expect(mockRepository.findOne).toHaveBeenCalledWith({
+        where: { date: '2023-05-01', userId: 'test-user-id' }
+      });
       expect(mockResponse.status).toHaveBeenCalledWith(200);
     });
 
@@ -114,6 +125,19 @@ describe('StandupController', () => {
       // Assert
       expect(mockResponse.status).toHaveBeenCalledWith(404);
     });
+
+    it('should return 401 if user not authenticated', async () => {
+      // Arrange
+      const standupController = require('../../src/controllers/standupController');
+      mockRequest.params = { date: '2023-01-01' };
+      mockRequest.user = undefined; // Remove user authentication
+      
+      // Act
+      await standupController.getStandup(mockRequest as Request, mockResponse as Response);
+      
+      // Assert
+      expect(mockResponse.status).toHaveBeenCalledWith(401);
+    });
   });
 
   describe('deleteStandup', () => {
@@ -127,7 +151,10 @@ describe('StandupController', () => {
       await standupController.deleteStandup(mockRequest as Request, mockResponse as Response);
       
       // Assert
-      expect(mockRepository.delete).toHaveBeenCalledWith({ date: '2023-01-01' });
+      expect(mockRepository.delete).toHaveBeenCalledWith({ 
+        date: '2023-01-01', 
+        userId: 'test-user-id' 
+      });
       expect(mockResponse.status).toHaveBeenCalledWith(200);
     });
 
@@ -142,6 +169,19 @@ describe('StandupController', () => {
       
       // Assert
       expect(mockResponse.status).toHaveBeenCalledWith(404);
+    });
+
+    it('should return 401 if user not authenticated', async () => {
+      // Arrange
+      const standupController = require('../../src/controllers/standupController');
+      mockRequest.params = { date: '2023-01-01' };
+      mockRequest.user = undefined; // Remove user authentication
+      
+      // Act
+      await standupController.deleteStandup(mockRequest as Request, mockResponse as Response);
+      
+      // Assert
+      expect(mockResponse.status).toHaveBeenCalledWith(401);
     });
   });
 
