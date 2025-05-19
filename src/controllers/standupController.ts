@@ -66,16 +66,18 @@ export const getStandup = async (req: Request, res: Response) => {
   try {
     const { date } = req.params;
     
-    // Build where condition
-    let whereCondition: any = { date };
+    // Get user ID from the authentication middleware
+    const userId = req.user?.id;
     
-    // Filter by user if authenticated
-    if (req.user?.id) {
-      whereCondition.userId = req.user.id;
+    if (!userId) {
+      return res.status(401).json({
+        success: false,
+        message: 'Authentication required to access standup data'
+      });
     }
 
     const standup = await standupRepository.findOne({
-      where: whereCondition
+      where: { date, userId }
     });
 
     if (!standup) {
@@ -104,17 +106,19 @@ export const updateStandup = async (req: Request, res: Response) => {
     const { date } = req.params;
     const { yesterday, today, blockers, isBlockerResolved, tags, mood, productivity, isHighlight } = req.body;
 
-    // Build where condition
-    let whereCondition: any = { date };
+    // Get user ID from the authentication middleware
+    const userId = req.user?.id;
     
-    // Filter by user if authenticated
-    if (req.user?.id) {
-      whereCondition.userId = req.user.id;
+    if (!userId) {
+      return res.status(401).json({
+        success: false,
+        message: 'Authentication required to update standup data'
+      });
     }
 
     // Check if standup exists
     const standup = await standupRepository.findOne({
-      where: whereCondition
+      where: { date, userId }
     });
 
     if (!standup) {
@@ -158,11 +162,6 @@ export const updateStandup = async (req: Request, res: Response) => {
       standup.isHighlight = isHighlight;
     }
 
-    // Make sure userId doesn't change
-    if (req.user?.id) {
-      standup.userId = req.user.id;
-    }
-
     // Save updates
     await standupRepository.save(standup);
 
@@ -185,15 +184,17 @@ export const deleteStandup = async (req: Request, res: Response) => {
   try {
     const { date } = req.params;
 
-    // Build where condition
-    let whereCondition: any = { date };
+    // Get user ID from the authentication middleware
+    const userId = req.user?.id;
     
-    // Filter by user if authenticated
-    if (req.user?.id) {
-      whereCondition.userId = req.user.id;
+    if (!userId) {
+      return res.status(401).json({
+        success: false,
+        message: 'Authentication required to delete standup data'
+      });
     }
 
-    const result = await standupRepository.delete(whereCondition);
+    const result = await standupRepository.delete({ date, userId });
 
     if (result.affected === 0) {
       return res.status(404).json({
@@ -288,9 +289,19 @@ export const updateTags = async (req: Request, res: Response) => {
     const { date } = req.params;
     const { tags } = req.body;
 
+    // Get user ID from the authentication middleware
+    const userId = req.user?.id;
+    
+    if (!userId) {
+      return res.status(401).json({
+        success: false,
+        message: 'Authentication required to update standup tags'
+      });
+    }
+
     // Check if standup exists
     const standup = await standupRepository.findOne({
-      where: { date }
+      where: { date, userId }
     });
 
     if (!standup) {
@@ -600,18 +611,21 @@ export const getHighlights = async (req: Request, res: Response) => {
 export const toggleHighlight = async (req: Request, res: Response) => {
   try {
     const { date } = req.params;
-
-    // Check if standup exists using raw query builder
-    let standupQuery = standupRepository
-      .createQueryBuilder('standup')
-      .where('standup.date = :date', { date });
     
-    // Filter by user if authenticated
-    if (req.user?.id) {
-      standupQuery = standupQuery.andWhere('standup.userId = :userId', { userId: req.user.id });
+    // Get user ID from the authentication middleware
+    const userId = req.user?.id;
+    
+    if (!userId) {
+      return res.status(401).json({
+        success: false,
+        message: 'Authentication required to toggle highlight status'
+      });
     }
-    
-    const standup = await standupQuery.getOne();
+
+    // Find the standup using composite primary key
+    const standup = await standupRepository.findOne({
+      where: { date, userId }
+    });
 
     if (!standup) {
       return res.status(404).json({

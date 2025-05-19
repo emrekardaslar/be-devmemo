@@ -6,6 +6,9 @@ export class Standup {
   @PrimaryColumn({ name: 'date' })
   date: string;
 
+  @PrimaryColumn({ name: 'userId' })
+  userId: string;
+
   @Column({ name: 'yesterday', type: 'text' })
   yesterday: string;
 
@@ -30,12 +33,9 @@ export class Standup {
   @Column({ name: 'isHighlight', type: 'boolean', default: false })
   isHighlight: boolean;
 
-  @ManyToOne(() => User, (user) => user.standups, { nullable: true })
+  @ManyToOne(() => User, (user) => user.standups, { nullable: false })
   @JoinColumn({ name: 'userId' })
   user: User;
-
-  @Column({ name: 'userId', nullable: true })
-  userId: string;
 
   @CreateDateColumn({ name: 'createdAt' })
   createdAt: Date;
