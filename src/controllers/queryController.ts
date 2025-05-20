@@ -2,6 +2,7 @@ import { Request, Response } from 'express';
 import { AppDataSource } from '../data-source';
 import { Standup } from '../entity/Standup';
 import { Between, Like } from 'typeorm';
+import { geminiService } from '../services/geminiService';
 
 // Get the repository
 const standupRepository = AppDataSource.getRepository(Standup);
@@ -351,6 +352,61 @@ export const processQuery = async (req: Request, res: Response) => {
     // Normalize query for processing
     const normalizedQuery = query.toLowerCase().trim();
     
+    // Check for advanced analysis requests
+    if (
+      normalizedQuery.includes('analyze') || 
+      normalizedQuery.includes('insights') ||
+      normalizedQuery.includes('summarize') ||
+      normalizedQuery.includes('trends') ||
+      normalizedQuery.includes('patterns')
+    ) {
+      // Get appropriate data based on query content
+      let data;
+      
+      // For blocker analysis
+      if (normalizedQuery.includes('blocker')) {
+        const blockers = await getBlockerData();
+        // Use Gemini service for enhanced analysis
+        const analysis = await geminiService.analyzeBlockers(blockers);
+        return res.status(200).json(analysis);
+      }
+      
+      // For standup summary/analysis
+      if (
+        normalizedQuery.includes('standup') || 
+        normalizedQuery.includes('summary') ||
+        normalizedQuery.includes('progress')
+      ) {
+        // Get recent standups (last 2 weeks)
+        const twoWeeksAgo = new Date();
+        twoWeeksAgo.setDate(twoWeeksAgo.getDate() - 14);
+        
+        // Build where condition
+        let whereCondition: any = {
+          date: Between(twoWeeksAgo.toISOString().split('T')[0], new Date().toISOString().split('T')[0])
+        };
+        
+        // Filter by user if authenticated
+        if (req.user?.id) {
+          whereCondition.userId = req.user.id;
+        }
+        
+        const standups = await standupRepository.find({
+          where: whereCondition,
+          order: { date: 'DESC' }
+        });
+        
+        // Use Gemini service for enhanced summary
+        const analysis = await geminiService.summarizeStandups(standups);
+        return res.status(200).json(analysis);
+      }
+      
+      // For general analysis, use the full NLP processing
+      // Use Gemini service for general query processing
+      const analysis = await geminiService.processQuery(query);
+      return res.status(200).json(analysis);
+    }
+    
     // Handle different query types
     
     // Weekly queries
@@ -428,7 +484,36 @@ export const processQuery = async (req: Request, res: Response) => {
       return getAllStandups(req, res);
     }
     
-    // If no specific query type matched, return helpful response
+    // For any unmatched query, use Gemini for natural language understanding
+    // But first get some recent data for context
+    const twoWeeksAgo = new Date();
+    twoWeeksAgo.setDate(twoWeeksAgo.getDate() - 14);
+    
+    // Build where condition
+    let whereCondition: any = {
+      date: Between(twoWeeksAgo.toISOString().split('T')[0], new Date().toISOString().split('T')[0])
+    };
+    
+    // Filter by user if authenticated
+    if (req.user?.id) {
+      whereCondition.userId = req.user.id;
+    }
+    
+    const recentStandups = await standupRepository.find({
+      where: whereCondition,
+      order: { date: 'DESC' },
+      take: 5 // Limit to 5 most recent standups for context
+    });
+    
+    // Process the query with Gemini
+    const geminiResponse = await geminiService.processQuery(query, recentStandups);
+    
+    // If successful, return the Gemini response
+    if (geminiResponse.success) {
+      return res.status(200).json(geminiResponse);
+    }
+    
+    // If Gemini fails or is not configured, fall back to the default response
     return res.status(200).json({
       success: true,
       message: 'I can help you with the following queries:',
@@ -436,7 +521,10 @@ export const processQuery = async (req: Request, res: Response) => {
         'What did I do this week?',
         'What was my focus in April?',
         'Any recurring blockers?',
-        'Show me entries tagged with #frontend'
+        'Show me entries tagged with #frontend',
+        'Analyze my recent standups',
+        'Identify patterns in my blockers',
+        'Summarize my progress this month'
       ]
     });
     
@@ -445,6 +533,106 @@ export const processQuery = async (req: Request, res: Response) => {
     return res.status(500).json({
       success: false,
       message: 'Failed to process query',
+      error: (error as Error).message
+    });
+  }
+};
+
+// Helper function to retrieve blocker data for analysis
+async function getBlockerData(): Promise<string[]> {
+  // Build where condition for non-empty blockers
+  let whereCondition: any = {
+    blockers: Like('%_%') // Matches any non-empty string
+  };
+  
+  // Get all standups with non-empty blockers
+  const standups = await standupRepository.find({
+    where: whereCondition,
+    order: {
+      date: 'DESC'
+    }
+  });
+  
+  return standups.map(s => s.blockers);
+}
+
+// Add a new endpoint for advanced analysis
+export const analyzeStandups = async (req: Request, res: Response) => {
+  try {
+    const { startDate, endDate, type } = req.query as { 
+      startDate?: string, 
+      endDate?: string,
+      type?: string 
+    };
+    
+    // Default to last 30 days if no date range provided
+    const defaultEndDate = new Date().toISOString().split('T')[0];
+    let defaultStartDate = new Date();
+    defaultStartDate.setDate(defaultStartDate.getDate() - 30);
+    
+    const queryStartDate = startDate || defaultStartDate.toISOString().split('T')[0];
+    const queryEndDate = endDate || defaultEndDate;
+    
+    // Build where condition
+    let whereCondition: any = {
+      date: Between(queryStartDate, queryEndDate)
+    };
+    
+    // Filter by user if authenticated
+    if (req.user?.id) {
+      whereCondition.userId = req.user.id;
+    }
+    
+    const standups = await standupRepository.find({
+      where: whereCondition,
+      order: {
+        date: 'ASC'
+      }
+    });
+    
+    if (standups.length === 0) {
+      return res.status(200).json({
+        success: true,
+        message: 'No standups found in the specified date range',
+        data: {
+          insights: [],
+          trends: {},
+          summary: "No data available for analysis"
+        }
+      });
+    }
+    
+    // Determine analysis type
+    if (type === 'blockers') {
+      const blockers = standups
+        .filter(s => s.blockers && s.blockers.trim() !== '')
+        .map(s => s.blockers);
+      
+      if (blockers.length === 0) {
+        return res.status(200).json({
+          success: true,
+          message: 'No blockers found in the specified date range',
+          data: {
+            patterns: [],
+            suggestions: [],
+            summary: "No blockers to analyze"
+          }
+        });
+      }
+      
+      const analysis = await geminiService.analyzeBlockers(blockers);
+      return res.status(200).json(analysis);
+    } else {
+      // Default to general standup analysis
+      const analysis = await geminiService.summarizeStandups(standups);
+      return res.status(200).json(analysis);
+    }
+    
+  } catch (error) {
+    console.error('Error analyzing standups:', error);
+    return res.status(500).json({
+      success: false,
+      message: 'Failed to analyze standups',
       error: (error as Error).message
     });
   }
