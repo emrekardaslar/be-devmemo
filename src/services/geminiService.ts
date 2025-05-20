@@ -60,8 +60,21 @@ export class GeminiService {
       if (!apiKey || !model) {
         return {
           success: false,
-          message: 'Gemini API is not properly configured',
-          error: !apiKey ? 'GEMINI_API_KEY environment variable is missing' : 'Failed to initialize Gemini model'
+          message: 'AI assistant is not available at the moment',
+          error: !apiKey ? 'GEMINI_API_KEY environment variable is missing' : 'Failed to initialize Gemini model',
+          fallback: {
+            message: "I'm currently operating in basic mode. You can still use all standard features!",
+            data: {
+              patterns: [],
+              suggestions: [],
+              analysis: "No blockers to analyze"
+            },
+            tips: [
+              "Try using specific date filters for more accurate results",
+              "Tag your standups to better organize your work",
+              "Use the search function to find specific content"
+            ]
+          }
         };
       }
 
@@ -126,14 +139,27 @@ export class GeminiService {
       console.error('Error processing query with Gemini API:', error);
       
       // Provide a helpful response without the AI
-      return {
-        success: false,
-        message: 'Failed to process query with Gemini API',
-        error: (error as Error).message,
-        fallback: {
-          insight: "I couldn't analyze your standups with AI at the moment. You can still use the standard features of StandupSync to view your standups and summaries."
-        }
-      };
+              return {
+          success: false,
+          message: 'AI analysis unavailable',
+          error: (error as Error).message,
+          fallback: {
+            message: "I couldn't analyze your standups with AI at the moment, but I've gathered some basic insights for you.",
+            data: standupData ? {
+              insights: ["You can view your recent standups in the dashboard", "Try using the search function to find specific content"],
+              accomplishments: standupData.slice(0, 3).map(s => `${s.date}: ${s.yesterday || 'No data'}`),
+              recommendations: [
+                "Continue tracking your daily progress",
+                "Review your recent blockers to identify patterns",
+                "Use tags consistently to improve organization"
+              ]
+            } : {
+              insights: [],
+              accomplishments: [],
+              recommendations: ["Start by creating your first standup entry"]
+            }
+          }
+        };
     }
   }
 
@@ -251,9 +277,17 @@ export class GeminiService {
       if (!apiKey || !model) {
         return {
           success: false,
-          message: 'Gemini API is not properly configured',
+          message: 'AI assistant is not available at the moment',
           error: !apiKey ? 'GEMINI_API_KEY environment variable is missing' : 'Failed to initialize Gemini model',
-          data: defaultResponse
+          fallback: {
+            message: "I'm currently operating in basic mode. You can still use all standard features!",
+            data: defaultResponse,
+            tips: [
+              "Try using specific date filters for more accurate results",
+              "Tag your standups to better organize your work",
+              "Use the search function to find specific content"
+            ]
+          }
         };
       }
 
@@ -305,12 +339,15 @@ export class GeminiService {
       }
     } catch (error) {
       console.error('Error with Gemini API request:', error);
-      return {
-        success: false,
-        message: 'Failed to process request with Gemini API',
-        error: (error as Error).message,
-        data: defaultResponse
-      };
+              return {
+          success: false,
+          message: 'AI analysis unavailable',
+          error: (error as Error).message,
+          fallback: {
+            message: "I couldn't analyze your standups with AI at the moment, but I've gathered some basic insights for you.",
+            data: defaultResponse
+          }
+        };
     }
   }
 }

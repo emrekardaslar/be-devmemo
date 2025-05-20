@@ -342,10 +342,59 @@ export const processQuery = async (req: Request, res: Response) => {
   try {
     const { query } = req.body;
     
-    if (!query || typeof query !== 'string') {
+    if (typeof query !== 'string') {
       return res.status(400).json({
         success: false,
-        message: 'Query is required and must be a string'
+        message: 'Query must be a string'
+      });
+    }
+    
+    // Handle empty queries with a welcome message
+    if (!query || query.trim() === '') {
+      return res.status(200).json({
+        success: true,
+        message: 'Welcome to StandupSync AI Assistant',
+        data: {
+          welcomeMessage: "I'm your personal AI assistant for StandupSync. Ask me anything about your standups!",
+          capabilities: [
+            "Natural language processing",
+            "Standup analysis and insights",
+            "Blocker identification and solutions",
+            "Trend detection and visualization",
+            "Performance metrics and suggestions"
+          ]
+        },
+        options: {
+          category: "standup",
+          supportedFeatures: [
+            "Natural language queries",
+            "Data analysis",
+            "Pattern recognition",
+            "Performance insights"
+          ]
+        },
+        examples: [
+          {
+            query: 'What did I do this week?',
+            description: 'View a summary of this week\'s standups'
+          },
+          {
+            query: 'What was my focus in April?',
+            description: 'Analyze your work focus for a specific month'
+          },
+          {
+            query: 'Any recurring blockers?',
+            description: 'Identify patterns in your blockers'
+          },
+          {
+            query: 'Show me entries tagged with #frontend',
+            description: 'Filter standups by tag'
+          },
+          {
+            query: 'Analyze my recent standups',
+            description: 'Get AI-powered insights on your recent work'
+          }
+        ]
       });
     }
     
@@ -516,15 +565,45 @@ export const processQuery = async (req: Request, res: Response) => {
     // If Gemini fails or is not configured, fall back to the default response
     return res.status(200).json({
       success: true,
-      message: 'I can help you with the following queries:',
+      message: 'Your personal AI assistant is ready to help',
+      options: {
+        category: "standup",
+        supportedFeatures: [
+          "Natural language queries",
+          "Data analysis",
+          "Pattern recognition",
+          "Performance insights"
+        ]
+      },
       examples: [
-        'What did I do this week?',
-        'What was my focus in April?',
-        'Any recurring blockers?',
-        'Show me entries tagged with #frontend',
-        'Analyze my recent standups',
-        'Identify patterns in my blockers',
-        'Summarize my progress this month'
+        {
+          query: 'What did I do this week?',
+          description: 'View a summary of this week\'s standups'
+        },
+        {
+          query: 'What was my focus in April?',
+          description: 'Analyze your work focus for a specific month'
+        },
+        {
+          query: 'Any recurring blockers?',
+          description: 'Identify patterns in your blockers'
+        },
+        {
+          query: 'Show me entries tagged with #frontend',
+          description: 'Filter standups by tag'
+        },
+        {
+          query: 'Analyze my recent standups',
+          description: 'Get AI-powered insights on your recent work'
+        },
+        {
+          query: 'Identify patterns in my blockers',
+          description: 'Find recurring issues and get suggestions'
+        },
+        {
+          query: 'Summarize my progress this month',
+          description: 'Get a concise overview of your monthly achievements'
+        }
       ]
     });
     
@@ -597,7 +676,12 @@ export const analyzeStandups = async (req: Request, res: Response) => {
         data: {
           insights: [],
           trends: {},
-          summary: "No data available for analysis"
+          summary: "No data available for analysis. Try creating some standups first!",
+          recommendations: [
+            "Create your first standup entry",
+            "Try a different date range",
+            "Check if you're logged in with the correct account"
+          ]
         }
       });
     }
@@ -614,8 +698,15 @@ export const analyzeStandups = async (req: Request, res: Response) => {
           message: 'No blockers found in the specified date range',
           data: {
             patterns: [],
-            suggestions: [],
-            summary: "No blockers to analyze"
+            suggestions: [
+              "Keep tracking blockers in your standups",
+              "Use the 'blockers' field to note any issues you're facing"
+            ],
+            summary: "No blockers to analyze. Great job keeping your work flowing smoothly!",
+            recommendations: [
+              "Continue tracking your progress",
+              "Consider reviewing your team's processes to maintain this momentum"
+            ]
           }
         });
       }
