@@ -17,6 +17,7 @@ Example API endpoints:
 - TypeScript
 - PostgreSQL
 - TypeORM for database interaction
+- Google Gemini AI for natural language processing
 
 ## Setup and Installation
 
@@ -47,7 +48,44 @@ DB_USERNAME=postgres
 DB_PASSWORD=postgres
 DB_DATABASE=standups
 PORT=4000
+GEMINI_API_KEY=your_google_gemini_api_key  # Optional but recommended for AI features
 ```
+
+## Gemini AI Integration
+
+StandupSync now features advanced natural language processing capabilities powered by Google's Gemini AI. This integration enables:
+
+- Intelligent analysis of standup data
+- Natural language query processing with context-aware responses
+- Pattern recognition in blockers and productivity trends
+- Smart summarization of standup entries over time
+
+### Features
+
+1. **Enhanced Query Processing**
+   - Process conversational queries about standup data
+   - Generate structured JSON responses with insights
+   - Provide context-aware recommendations
+
+2. **Standup Analysis**
+   - Analyze recurring patterns in blockers
+   - Identify productivity and mood trends
+   - Extract key focus areas from standup content
+
+3. **Smart Fallbacks**
+   - Graceful degradation when AI services are unavailable
+   - Robust error handling for API limitations
+   - Automatic model selection based on availability
+
+### Configuration
+
+To enable Gemini AI features, obtain an API key from the [Google AI Studio](https://makersuite.google.com/) and add it to your `.env` file:
+
+```
+GEMINI_API_KEY=your_google_gemini_api_key
+```
+
+The system will function without an API key, but with limited natural language capabilities.
 
 ## API Endpoints
 
@@ -79,6 +117,8 @@ The API supports natural language queries like:
 - "What was my focus in April?"
 - "Any recurring blockers?"
 - "Show me entries tagged with #frontend"
+- "Analyze my productivity trends over the last month"
+- "What are the common themes in my recent work?"
 
 ## Data Model
 
