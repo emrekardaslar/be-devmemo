@@ -137,4 +137,8 @@ The API supports natural language queries like:
 ```
 npm run build
 npm start
-``` 
+```
+
+---
+
+**Note:** This backend project (and its companion frontend) is an experimental project built using Cursor (an AI-powered IDE) and memory banks. It serves as a trial to explore the capabilities of Cursor's AI assistant and memory bank tools. As such, the project's design, documentation, and implementation reflect an experimental approach to leveraging AI-driven development workflows. 
