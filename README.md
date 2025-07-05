@@ -4,7 +4,7 @@ This is the backend service for the StandupSync application, providing API endpo
 
 ## Demo API
 
-The production API is deployed at [https://be-devmemo.onrender.com/api](https://be-devmemo.onrender.com/api)
+The production API is deployed at [https://be-devmemo.onrender.com/api](https://be-devmemo.onrender.com/api) (It may not work due to the limitations of supabase free tier)
 
 Example API endpoints:
 - [All Standups](https://be-devmemo.onrender.com/api/standups)
